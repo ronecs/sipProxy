@@ -52,12 +52,8 @@ recordroute = ""
 topvia = ""
 registrar = {}
 
-
-
-
-def quotechars(chars):
-    return ''.join(['.', c][c.isalnum()] for c in chars)
-
+def quotechars( chars ):
+	return ''.join( ['.', c][c.isalnum()] for c in chars )
 
 def showtime():
     logging.debug(time.strftime("(%H:%M:%S)", time.localtime()))
@@ -66,6 +62,7 @@ def showtime():
 class UDPHandler(SocketServer.BaseRequestHandler):
 
     def debugRegister(self):
+        print 'Registrovane nove zariadenie'
         logging.debug("*** REGISTRAR ***")
         logging.debug("*****************")
         for key in registrar.keys():
@@ -221,7 +218,7 @@ class UDPHandler(SocketServer.BaseRequestHandler):
         if expires == 0:
             if registrar.has_key(fromm):
                 del registrar[fromm]
-                self.sendResponse("200 0K")
+                self.sendResponse("200 OK")
                 return
         else:
             now = int(time.time())
@@ -232,9 +229,10 @@ class UDPHandler(SocketServer.BaseRequestHandler):
         logging.debug("Expires= %d" % expires)
         registrar[fromm] = [contact, self.socket, self.client_address, validity]
         self.debugRegister()
-        self.sendResponse("200 0K")
+        self.sendResponse("200 OK")
 
     def processInvite(self):
+        print 'Prbeieha novy hovor'
         logging.debug("-----------------")
         logging.debug(" INVITE received ")
         logging.debug("-----------------")
@@ -258,7 +256,7 @@ class UDPHandler(SocketServer.BaseRequestHandler):
                 logging.info("<<< %s" % data[0])
                 logging.debug("---\n<< server send [%d]:\n%s\n---" % (len(text), text))
             else:
-                self.sendResponse("480 Temporarily Unavailable")
+                self.sendResponse("480 Ucastnik nedostupny")
         else:
             self.sendResponse("500 Server Internal Error")
 
@@ -351,11 +349,11 @@ class UDPHandler(SocketServer.BaseRequestHandler):
             elif rx_update.search(request_uri):
                 self.processNonInvite()
             elif rx_subscribe.search(request_uri):
-                self.sendResponse("200 0K")
+                self.sendResponse("200 OK")
             elif rx_publish.search(request_uri):
-                self.sendResponse("200 0K")
+                self.sendResponse("200 OK")
             elif rx_notify.search(request_uri):
-                self.sendResponse("200 0K")
+                self.sendResponse("200 OK")
             elif rx_code.search(request_uri):
                 self.processCode()
             else:
@@ -363,7 +361,6 @@ class UDPHandler(SocketServer.BaseRequestHandler):
                 # print "message %s unknown" % self.data
 
     def handle(self):
-        # socket.setdefaulttimeout(120)
         data = self.request[0]
         self.data = data.split("\r\n")
         self.socket = self.request[1]
@@ -381,18 +378,3 @@ class UDPHandler(SocketServer.BaseRequestHandler):
                 hexdump(data, ' ', 16)
                 logging.warning("---")
 
-
-if __name__ == "__main__":
-    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', filename='proxy.log', level=logging.INFO,
-                        datefmt='%H:%M:%S')
-    logging.info(time.strftime("%a, %d %b %Y %H:%M:%S ", time.localtime()))
-    hostname = socket.gethostname()
-    logging.info(hostname)
-    ipaddress = socket.gethostbyname(hostname)
-    if ipaddress == "127.0.0.1":
-        ipaddress = sys.argv[1]
-    logging.info(ipaddress)
-    recordroute = "Record-Route: <sip:%s:%d;lr>" % (ipaddress, PORT)
-    topvia = "Via: SIP/2.0/UDP %s:%d" % (ipaddress, PORT)
-    server = SocketServer.UDPServer((HOST, PORT), UDPHandler)
-    server.serve_forever()
